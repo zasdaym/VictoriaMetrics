@@ -492,12 +492,12 @@ apptest-legacy: victoria-metrics-race vmbackup-race vmrestore-race
 apptest-clusternative-vmsingle: victoria-metrics-race
 	OS=$$(uname | tr '[:upper:]' '[:lower:]'); \
 	ARCH=$$(uname -m | tr '[:upper:]' '[:lower:]' | sed 's/x86_64/amd64/'); \
-	VERSION=v1.142.0; \
-	VMSINGLE=victoria-metrics-$${OS}-$${ARCH}-$${VERSION}.tar.gz; \
+	VERSION=v1.144.0; \
+	VMCLUSTER=victoria-metrics-$${OS}-$${ARCH}-$${VERSION}-cluster.tar.gz; \
 	URL=https://github.com/VictoriaMetrics/VictoriaMetrics/releases/download/$${VERSION}; \
 	DIR=/tmp/$${VERSION}; \
 	test -d $${DIR} || (mkdir $${DIR} && \
-		curl --output-dir /tmp -LO $${URL}/$${VMSINGLE} && tar xzf /tmp/$${VMSINGLE} -C $${DIR} \
+		curl --output-dir /tmp -LO $${URL}/$${VMCLUSTER} && tar xzf /tmp/$${VMCLUSTER} -C $${DIR} \
 	); \
 	VMSELECT_PATH=$${DIR}/vmselect-prod \
 	go test ./apptest/tests -run="^TestMixed.*"
