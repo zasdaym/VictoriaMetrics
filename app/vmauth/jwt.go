@@ -55,8 +55,8 @@ type jwtCache struct {
 	users  []*UserInfo
 	oidcDP *oidcDiscovererPool
 
-	// Store whether there are users with SkipVMAccessValidation=true in their JWT config,
-	// in order to have a fast rejection path.
+	// enforcement of vm_access claim is enabled if there are no users with "skip_vm_access_validation=true"
+	// used for fast rejection path in case of missing "vm_access" claim
 	enforceVMAccessClaims bool
 }
 
@@ -452,7 +452,6 @@ func validateJWTPlaceholdersForURL(up *URLPrefix, isAllowed bool) error {
 			}
 			if strings.Contains(p, placeholderPrefix) {
 				return fmt.Errorf("invalid placeholder found in URL request path: %q, supported values are: %s", bu.Path, strings.Join(allPlaceholders, ", "))
-
 			}
 		}
 		for param, values := range bu.Query() {
@@ -507,7 +506,6 @@ func hasAnyPlaceholders(u *url.URL) bool {
 				return true
 			}
 		}
-
 	}
 	return false
 }
