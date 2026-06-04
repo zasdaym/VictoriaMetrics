@@ -168,6 +168,13 @@ func TestParseJWTBody_Failure(t *testing.T) {
 		true,
 	)
 
+	// non-object body type
+	f(
+		`[]`,
+		`unexpected non json object; type: "array"`,
+		true,
+	)
+
 	// vm_access claim invalid type
 	f(
 		`{"vm_access": 123}`,
@@ -559,7 +566,6 @@ func TestParseJWTBody_VMAccessPresence(t *testing.T) {
 	f(`{}`, false)
 	f(`{"vm_access": null}`, false)
 	f(`{"role": "admin"}`, false)
-	f(`[]`, false)
 }
 
 func TestNewTokenFromRequest_Failure(t *testing.T) {
@@ -873,7 +879,6 @@ func TestNewTokenFromRequest_Success(t *testing.T) {
 }
 
 func TestTokenMatchClaims(t *testing.T) {
-
 	/*
 		{
 		  "iss": "https://login.microsoftonline.com/-6691-4868-a77b-1b0f9bbe5f43/v2.0",
