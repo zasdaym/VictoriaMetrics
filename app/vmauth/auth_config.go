@@ -912,8 +912,8 @@ func reloadAuthConfigData(data []byte) (bool, error) {
 	}
 	oidcDP.startDiscovery()
 	jwtc := &jwtCache{
-		users:                              jui,
-		oidcDP:                             oidcDP,
+		users:                 jui,
+		oidcDP:                oidcDP,
 		enforceVMAccessClaims: !hasUsersWithSkipVMAccessValidation,
 	}
 

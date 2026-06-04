@@ -52,7 +52,7 @@ var urlPathPlaceHolders = []string{
 
 type jwtCache struct {
 	// users contain UserInfo`s from AuthConfig with JWTConfig set
-	users []*UserInfo
+	users  []*UserInfo
 	oidcDP *oidcDiscovererPool
 
 	// Store whether there are users with SkipVMAccessValidation=true in their JWT config,
