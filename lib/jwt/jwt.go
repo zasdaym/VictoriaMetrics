@@ -125,7 +125,6 @@ type body struct {
 }
 
 func (b *body) parse(src string) error {
-
 	var err error
 	b.buf, err = decodeB64(b.buf[:0], src)
 	if err != nil {
@@ -135,6 +134,9 @@ func (b *body) parse(src string) error {
 	jv, err := b.p.ParseBytes(b.buf)
 	if err != nil {
 		return err
+	}
+	if jv.Type() != fastjson.TypeObject {
+		return fmt.Errorf("unexpected non json object; type: %q", jv.Type())
 	}
 	if expObject := jv.Get("exp"); expObject != nil {
 		b.Exp, err = expObject.Int64()
@@ -235,7 +237,6 @@ func (b *body) reset() {
 	if b.vmAccessClaimObject != nil {
 		b.vmAccessClaimObject = nil
 	}
-
 }
 
 // Parse parses JWT token from given source string
@@ -435,7 +436,6 @@ func (vac *VMAccessClaim) reset() {
 }
 
 func (vac *VMAccessClaim) parseFrom(jv *fastjson.Value) error {
-
 	if err := vac.Tenant.parseFrom(jv); err != nil {
 		return err
 	}
