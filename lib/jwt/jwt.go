@@ -105,6 +105,10 @@ type body struct {
 	Scope         string `json:"scope,omitempty"`
 	vmAccessClaim VMAccessClaim
 
+	// hasVMAccess is set to true when the token body contains a `vm_access` claim.
+	// Presence enforcement is left to the caller via Token.HasVMAccess.
+	hasVMAccess bool
+
 	buf []byte
 	p   *fastjson.Parser
 
@@ -153,30 +157,31 @@ func (b *body) parse(src string) error {
 	}
 
 	vaObject := jv.Get("vm_access")
-	if vaObject == nil {
-		return ErrVMAccessFieldMissing
-	}
-	// some IDPs encode custom claims as a string
-	// try parsing as an object and fallback to a string
-	switch vaObject.Type() {
-	case fastjson.TypeObject:
-		if err := b.vmAccessClaim.parseFrom(vaObject); err != nil {
-			return err
-		}
-	case fastjson.TypeString:
-		b.claimsParser = parserPool.Get()
-		va, err := b.claimsParser.ParseBytes(vaObject.GetStringBytes())
-		if err != nil {
-			return fmt.Errorf("cannot parse `vm_access` string json: %w", err)
-		}
-		if err := b.vmAccessClaim.parseFrom(va); err != nil {
-			return fmt.Errorf("cannot parse `vm_access` values from string json: %w", err)
-		}
-		b.vmAccessClaimObject = va
-	case fastjson.TypeNull:
-		return ErrVMAccessFieldMissing
+	switch {
+	case vaObject == nil || vaObject.Type() == fastjson.TypeNull:
+		b.hasVMAccess = false
 	default:
-		return fmt.Errorf("unexpected type for `vm_access` field; got: %q, want object {}", vaObject.Type())
+		// some IDPs encode custom claims as a string
+		// try parsing as an object and fallback to a string
+		switch vaObject.Type() {
+		case fastjson.TypeObject:
+			if err := b.vmAccessClaim.parseFrom(vaObject); err != nil {
+				return err
+			}
+		case fastjson.TypeString:
+			b.claimsParser = parserPool.Get()
+			va, err := b.claimsParser.ParseBytes(vaObject.GetStringBytes())
+			if err != nil {
+				return fmt.Errorf("cannot parse `vm_access` string json: %w", err)
+			}
+			if err := b.vmAccessClaim.parseFrom(va); err != nil {
+				return fmt.Errorf("cannot parse `vm_access` values from string json: %w", err)
+			}
+			b.vmAccessClaimObject = va
+		default:
+			return fmt.Errorf("unexpected type for `vm_access` field; got: %q, want object {}", vaObject.Type())
+		}
+		b.hasVMAccess = true
 	}
 	b.Jti = bytesutil.ToUnsafeString(jv.GetStringBytes("jti"))
 
@@ -218,6 +223,7 @@ func (b *body) reset() {
 	b.buf = b.buf[:0]
 	b.allClaims = nil
 	b.vmAccessClaim.reset()
+	b.hasVMAccess = false
 	if b.p != nil {
 		parserPool.Put(b.p)
 		b.p = nil
@@ -233,7 +239,6 @@ func (b *body) reset() {
 }
 
 // Parse parses JWT token from given source string
-//
 // Token field is valid until src is reachable
 func (t *Token) Parse(src string, enforceAuthPrefix bool) error {
 	if enforceAuthPrefix && (len(src) < len(prefix) || !strings.EqualFold(src[:len(prefix)], prefix)) {
@@ -266,6 +271,11 @@ func (t *Token) Parse(src string, enforceAuthPrefix bool) error {
 		return err
 	}
 	return nil
+}
+
+// HasVMAccess reports whether the parsed token contains a `vm_access` claim.
+func (t *Token) HasVMAccess() bool {
+	return t.body.hasVMAccess
 }
 
 // Issuer returns `iss` claim value from token body
@@ -568,6 +578,9 @@ func NewToken(auth string, enforceAuthPrefix bool) (*Token, error) {
 	var t Token
 	if err := t.parse(jwt[0], jwt[1], jwt[2]); err != nil {
 		return nil, err
+	}
+	if !t.body.hasVMAccess {
+		return nil, ErrVMAccessFieldMissing
 	}
 	return &t, nil
 }

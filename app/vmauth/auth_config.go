@@ -906,14 +906,15 @@ func reloadAuthConfigData(data []byte) (bool, error) {
 		return false, fmt.Errorf("failed to parse auth config: %w", err)
 	}
 
-	jui, oidcDP, err := parseJWTUsers(ac)
+	jui, oidcDP, hasUsersWithSkipVMAccessValidation, err := parseJWTUsers(ac)
 	if err != nil {
 		return false, fmt.Errorf("failed to parse JWT users from auth config: %w", err)
 	}
 	oidcDP.startDiscovery()
 	jwtc := &jwtCache{
-		users:  jui,
-		oidcDP: oidcDP,
+		users:                              jui,
+		oidcDP:                             oidcDP,
+		enforceVMAccessClaims: !hasUsersWithSkipVMAccessValidation,
 	}
 
 	m, err := parseAuthConfigUsers(ac)

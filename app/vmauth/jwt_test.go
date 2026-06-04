@@ -39,7 +39,7 @@ XOtclIk1uhc03oL9nOQ=
 			}
 			return
 		}
-		users, oidcDP, err := parseJWTUsers(ac)
+		users, oidcDP, _, err := parseJWTUsers(ac)
 		if err == nil {
 			t.Fatalf("expecting non-nil error; got %v", users)
 		}
@@ -326,7 +326,7 @@ XOtclIk1uhc03oL9nOQ=
 			t.Fatalf("unexpected error: %s", err)
 		}
 
-		jui, oidcDP, err := parseJWTUsers(ac)
+		jui, oidcDP, _, err := parseJWTUsers(ac)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}

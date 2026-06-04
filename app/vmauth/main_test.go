@@ -739,6 +739,12 @@ users:
 		"vm_access": map[string]any{},
 	}, false)
 
+	// token without vm_access claim, but with a custom claim usable for routing
+	roleToken := genToken(t, map[string]any{
+		"exp":  time.Now().Add(10 * time.Minute).Unix(),
+		"role": "admin",
+	}, true)
+
 	fullToken := genToken(t, map[string]any{
 		"exp": time.Now().Add(10 * time.Minute).Unix(),
 		"vm_access": map[string]any{
@@ -778,6 +784,39 @@ missing 'Authorization' request header`
 statusCode=401
 Unauthorized`
 	f(simpleCfgStr, request, responseExpected)
+
+	// token without vm_access claim is rejected even with a matching custom claim
+	request = httptest.NewRequest(`GET`, "http://some-host.com/abc", nil)
+	request.Header.Set(`Authorization`, `Bearer `+roleToken)
+	responseExpected = `
+statusCode=401
+Unauthorized`
+	f(fmt.Sprintf(`
+users:
+- jwt:
+    public_keys:
+    - %q
+    match_claims:
+      role: admin
+  url_prefix: {BACKEND}/foo`, string(publicKeyPEM)), request, responseExpected)
+
+	// token without vm_access claim is accepted when skip_vm_access_validation is set
+	request = httptest.NewRequest(`GET`, "http://some-host.com/abc", nil)
+	request.Header.Set(`Authorization`, `Bearer `+roleToken)
+	responseExpected = `
+statusCode=200
+path: /foo/abc
+query:
+headers:`
+	f(fmt.Sprintf(`
+users:
+- jwt:
+    public_keys:
+    - %q
+    skip_vm_access_validation: true
+    match_claims:
+      role: admin
+  url_prefix: {BACKEND}/foo`, string(publicKeyPEM)), request, responseExpected)
 
 	// expired token
 	request = httptest.NewRequest(`GET`, "http://some-host.com/abc", nil)

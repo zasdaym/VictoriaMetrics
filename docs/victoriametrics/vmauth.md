@@ -270,7 +270,8 @@ users:
   url_prefix: "http://victoria-metrics:8428/"
 ```
 
-JWT tokens must contain a `"vm_access": {}` claim, more on that in [JWT claim-based request templating](https://docs.victoriametrics.com/victoriametrics/vmauth/#jwt-claim-based-request-templating)
+JWT tokens must contain a `"vm_access": {}` claim, more on that in [JWT claim-based request templating](https://docs.victoriametrics.com/victoriametrics/vmauth/#jwt-claim-based-request-templating).
+This requirement can be relaxed per user with `skip_vm_access_validation`, see [Optional vm_access claim](https://docs.victoriametrics.com/victoriametrics/vmauth/#optional-vm_access-claim).
 
 For testing, skip signature verification with `skip_verify: true` (not recommended for production).
 
@@ -309,6 +310,33 @@ The `oidc` option cannot be combined with `public_keys`, `public_key_files`, or 
 
 If the OIDC provider is temporarily unavailable during a key refresh, `vmauth` continues using the previously fetched keys until the next successful refresh.
 If no keys have been fetched yet (e.g., on startup when the provider is unreachable), the config section is skipped during authentication.
+
+
+#### Optional vm_access claim
+
+By default, `vmauth` rejects JWT tokens that don't contain a `vm_access` claim. When routing is built solely on
+[JWT claim matching](https://docs.victoriametrics.com/victoriametrics/vmauth/#jwt-claim-matching) using other token claims,
+the `vm_access` claim is redundant. Set `skip_vm_access_validation: true`{{% available_from "#" %}} on the `jwt` user
+to accept tokens without a `vm_access` claim:
+
+```yaml
+users:
+- jwt:
+    public_keys:
+    - |
+      -----BEGIN PUBLIC KEY-----
+      MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
+      -----END PUBLIC KEY-----
+    skip_vm_access_validation: true
+    match_claims:
+      role: admin
+  url_prefix: "http://victoria-metrics-admin:8428/"
+```
+
+`skip_vm_access_validation` only relaxes the requirement that the claim is present - the token signature is still verified,
+and a `vm_access` claim is still parsed and applied when present (e.g. for [request templating](https://docs.victoriametrics.com/victoriametrics/vmauth/#jwt-claim-based-request-templating)).
+The setting is per user, so tokens without `vm_access` are accepted only for the matched user that opts in.
+When the claim is absent, the default tenant `0:0` is assumed for any `vm_access`-based placeholders. See [#11054](https://github.com/VictoriaMetrics/VictoriaMetrics/issues/11054).
 
 
 #### JWT claim matching
