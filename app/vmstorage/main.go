@@ -13,6 +13,7 @@ import (
 
 	"github.com/VictoriaMetrics/metrics"
 
+	"github.com/VictoriaMetrics/VictoriaMetrics/lib/appmetrics"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/buildinfo"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/cgroup"
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/envflag"
@@ -179,6 +180,7 @@ func main() {
 		logger.Panicf("-storage.idbPrefillStart cannot exceed 23 hours; got %s", idbPrefillStart)
 	}
 	fs.RegisterPathFsMetrics(*storageDataPath)
+	appmetrics.MustStartUncleanShutdownMarker(*storageDataPath)
 	logger.Infof("opening storage at %q with -retentionPeriod=%s", *storageDataPath, retentionPeriod)
 	startTime := time.Now()
 	opts := storage.OpenOptions{
@@ -264,6 +266,7 @@ func main() {
 	logger.Infof("successfully closed the storage in %.3f seconds", time.Since(startTime).Seconds())
 
 	fs.MustStopDirRemover()
+	appmetrics.MustStopUncleanShutdownMarker()
 	logger.Infof("the vmstorage has been stopped")
 }
 
